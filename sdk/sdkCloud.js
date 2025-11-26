@@ -21,7 +21,7 @@ import { smartuiSnapshot } from "@lambdatest/selenium-driver";
     }
 })();
 
-
+// After capturing the baseline image, run this before comparing the actual image.
 // import { Builder } from "selenium-webdriver";
 // import { smartuiSnapshot } from "@lambdatest/selenium-driver";
 
