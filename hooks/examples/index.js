@@ -4,9 +4,10 @@ let ignoredBoxesTest = require("./ignoredBoxes");
 let transparencyTest = require("./transparency");
 let generalTest = require("./general");
 let ignoreAreasColoredWith = require("./ignoreAreasColoredWith");
-let helpLogger = require("../../util/helpLogger");
-let validCommands = require("../../util/validCommands");
-let capabilities = require("../../config.json");
+let helpLogger = require("../util/helpLogger");
+let validCommands = require("../util/validCommands");
+let capabilities = require("../config.json");
+
 
 async function test() {
   // the command line argument passed while executing

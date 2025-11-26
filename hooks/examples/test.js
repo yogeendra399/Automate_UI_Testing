@@ -1,132 +1,77 @@
+// test.js — Fully working SmartUI Visual Test (CommonJS)
+
 const webdriver = require("selenium-webdriver");
 const By = webdriver.By;
-var moment = require("moment");
-var waitTime = 2 // 2 seconds
+const moment = require("moment");
 
-// username: Username can be found at automation dashboard
 const USERNAME = process.env.LT_USERNAME || "username";
-
-// AccessKey:  AccessKey can be generated from automation dashboard or profile section
 const KEY = process.env.LT_ACCESS_KEY || "accessKey";
+const GRID_HOST = "@hub.lambdatest.com/wd/hub";
 
-// gridUrl: gridUrl can be found at automation dashboard
-const GRID_HOST = process.env.GRID_HOST || "@hub.lambdatest.com/wd/hub";    //connect to lambdatest hub
+const waitTime = 2; // seconds
+
+// ✔ Your SmartUI configuration
+let capabilities = {
+  platform: "Windows 10",
+  browserName: "chrome",
+  version: "latest",
+  visual: true,
+  name: "SmartUI Visual Test",
+  build: "Build_1",
+  "smartUI.project": "Visual_test",   // exact project name
+  "smartUI.build": "Build_1",
+  "smartUI.baseline": false
+};
 
 async function searchTextOnGoogle() {
-  var keys = process.argv;
-  console.log(keys);
-  let parallelCount = keys[2] || 1;
-  let tunnel = keys[3] || false;
-  let platform = keys[4] || "Windows 10";
-  let browserName = keys[5] || "chrome";
-  let version = keys[6] || "latest";
+  let gridUrl = "https://" + USERNAME + ":" + KEY + GRID_HOST;
 
-  // Setup Input capabilities
-  let capabilities = {
-    platform: platform,
-    browserName: browserName,
-    version: version,
-    queueTimeout: 300,
-    visual: true,
-    "user": USERNAME,
-    "accessKey": KEY,
-    name: "test session", // name of the test
-    build: platform + browserName + version, // name of the build
-    "LT:Options": {
-      "smartUI.project": "smartuigithub",
-      // will generate random smartUI build if not specified
-      // "smartUI.build": "first", 
-      "smartUI.options": {
-        "output": {
-          "errorColor": {
-            "red": 200,
-            "green": 0,
-            "blue": 255
-          },
-          "errorType": "movement",
-          "transparency": 0.3,
-          "largeImageThreshold": 100,
-          "useCrossOrigin": false,
-          "outputDiff": true
-        },
-        "scaleToSameSize": true,
-        "ignore": "antialiasing"
-      }
-    }
-  };
+  console.log("Connecting to:", gridUrl);
+  console.log("Using project:", capabilities["smartUI.project"]);
 
-  //add github app capabilities
-  let githubURL = process.env.GITHUB_URL
-  if (githubURL) {
-    capabilities.github = {
-      url: githubURL
-    }
-  }
-
-  if (tunnel === "true") {
-    capabilities.tunnel = true;
-  }
-
-  var gridUrl = "https://" + USERNAME + ":" + KEY + GRID_HOST;
-  console.log(gridUrl);
-  console.log(USERNAME);
-  console.log(capabilities);
-  console.log("Running " + parallelCount + " parallel tests ");
-  let i = 1;
-  for (i = 1; i <= parallelCount; i++) {
-    startTest(gridUrl, capabilities, "Test " + i);
-  }
+  // run only 1 test
+  startTest(gridUrl, capabilities);
 }
 
 searchTextOnGoogle();
 
-async function startTest(gridUrl, capabilities, name) {
-  const caps = capabilities;
-  var start_date = moment();
+async function startTest(gridUrl, caps) {
+  const start = moment();
 
   const driver = await new webdriver.Builder()
     .usingServer(gridUrl)
     .withCapabilities(caps)
     .build();
 
-  var end_date = moment();
-  var duration = moment.duration(end_date.diff(start_date));
-  console.log(caps.name, " : Setup Time :", duration.asSeconds());
+  const end = moment();
+  console.log("Setup Time:", moment.duration(end.diff(start)).asSeconds(), "sec");
 
-  // navigate to a url
-  let url = "https://www.lambdatest.com";
-  console.log(url);
-  await driver
-    .get(url)
-    .then(function () {
-      const session = driver.getSession();
+  try {
+    // open any website you want screenshots from:
+    const url = "https://www.lambdatest.com";
+    console.log("Navigating to:", url);
+    await driver.get(url);
 
-      // For Smartui TakeScreenshot
-      setTimeout(function () {
-        console.log("taking screenshot ...")
-        let config = {
-          screenshotName: "web-page"
-        };
-        driver.executeScript("smartui.takeScreenshot", config).then(out => {
-          console.log("RESPONSE :", out)
-          return
-        });
-      }, waitTime * 1000);
+    // ✔ SmartUI Screenshot 1: viewport
+    setTimeout(async function () {
+      console.log("📸 Taking SmartUI screenshot...");
+      let config = { screenshotName: "homepage" };
 
-
-      driver.getTitle().then(function (title) {
-        setTimeout(function () {
-          driver.executeScript("lambda-status=passed");
-          driver.quit();
-        }, 15000);
+      driver.executeScript("smartui.takeScreenshot", config).then(out => {
+        console.log("SmartUI Response:", out);
       });
-    })
-    .catch(function (err) {
-      error = JSON.stringify(err);
-      console.log(error);
-      console.log("test failed with reason " + err);
-      driver.executeScript("lambda-status=failed");
-      driver.quit();
-    });
-}
+    }, waitTime * 1000);
 
+    // end test after 15 seconds
+    setTimeout(function () {
+      driver.executeScript("lambda-status=passed");
+      console.log("Test finished.");
+      driver.quit();
+    }, 15000);
+
+  } catch (err) {
+    console.log("Error:", err);
+    driver.executeScript("lambda-status=failed");
+    driver.quit();
+  }
+}
